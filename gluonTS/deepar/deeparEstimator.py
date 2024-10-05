@@ -219,6 +219,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
 
+        #methode qui sert à remplacer les nan. Pour l'imputation on precise exactement comme traiter ça. Ici on remplace par 0, mais on peut changer totalement ! Liste dispo. 
         self.imputation_method = (
             imputation_method
             if imputation_method is not None
@@ -233,6 +234,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         )
         self.nonnegative_pred_samples = nonnegative_pred_samples
 
+    #just useful to calculate some statistics. Defini dans la classe abstraite au plus au niveau. On ne peut pas faire autrement qu'avec ça. 
     @classmethod
     def derive_auto_fields(cls, train_iter):
         stats = calculate_dataset_statistics(train_iter)
@@ -242,14 +244,21 @@ class DeepAREstimator(PyTorchLightningEstimator):
             "num_feat_static_cat": len(stats.feat_static_cat),
             "cardinality": [len(cats) for cats in stats.feat_static_cat],
         }
-
+    
+    #les transormation qui seront appliquées au data. Construction d'une matrice à la fin de features; Une transformation ça s'applique aux data et ça se chaine. 
     def create_transformation(self) -> Transformation:
         remove_field_names = []
         if self.num_feat_static_real == 0:
             remove_field_names.append(FieldName.FEAT_STATIC_REAL)
         if self.num_feat_dynamic_real == 0:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
-
+        # premiere step, si on a pas feat_static_real ou num_feat_dynamic, on les suppriem. 
+        # si elles sont abscentes les FEAT_STATIC_CAT et FEAT_STATIC_REAL, on les remplace par des 0 
+        #on les convertit en array numpy. 
+        #on ajoute des features temporels AddTimeFeature, AddAgeFeature
+        #a la fin on combine les features en une matrice avec le vstack. Si on veut de nouveau features isssues des data il faut les creer. 
+        #TODO. Supprimer les transformations/ajouter une transformation particuliere. ? i.e. La vol par ex.
+        #a priori pas besoin de bouger les features. 
         return Chain(
             [RemoveFields(field_names=remove_field_names)]
             + (
@@ -260,7 +269,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             + (
                 [
                     SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0] #setField : set un field dans un dico avec une valeur donnée. 
                     )
                 ]
                 if not self.num_feat_static_real > 0
@@ -295,7 +304,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
                 ),
                 AddAgeFeature(
                     target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_AGE,
+                    output_field=FieldName.FEAT_AGE, #on donne des noms aux outputs fields. Puis on a aussi des noms aux inputs fields.
                     pred_length=self.prediction_length,
                     log_scale=True,
                 ),
@@ -373,7 +382,9 @@ class DeepAREstimator(PyTorchLightningEstimator):
             field_names=TRAINING_INPUT_NAMES,
             output_type=torch.tensor,
         )
+    
 
+    #c'est lui qui créer qqch d'utile. il construit le DeepAR
     def create_lightning_module(self) -> DeepARLightningModule:
         return DeepARLightningModule(
             lr=self.lr,
