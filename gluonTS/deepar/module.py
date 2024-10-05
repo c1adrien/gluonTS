@@ -32,8 +32,8 @@ from gluonts.torch.util import (
 )
 from gluonts.itertools import prod
 from gluonts.model import Input, InputSpec
-
-
+#TODO. comprendre en détails ce modèle. Hyper utile. 
+#c'est là que l'on spécifie réelement le modéle. Pour le reste, transformations des data; construction des trains/validaion etc.. Tout est un peu séparé. 
 class DeepARModel(nn.Module):
     """
     Module implementing the DeepAR model, see [SFG17]_.
@@ -159,7 +159,7 @@ class DeepARModel(nn.Module):
             batch_first=True,
         )
         self.nonnegative_pred_samples = nonnegative_pred_samples
-
+    #methode obligatoire. Le describe inputs est obligatoire ici. 
     def describe_inputs(self, batch_size=1) -> InputSpec:
         return InputSpec(
             {

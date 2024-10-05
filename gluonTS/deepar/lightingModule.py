@@ -54,7 +54,7 @@ class DeepARLightningModule(pl.LightningModule):
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
-        self.model = DeepARModel(**model_kwargs)
+        self.model = DeepARModel(**model_kwargs) #le modele est inclus ici. 
         self.lr = lr
         self.weight_decay = weight_decay
         self.patience = patience
@@ -68,12 +68,12 @@ class DeepARLightningModule(pl.LightningModule):
         """
         Execute training step.
         """
-        train_loss = self.model.loss(
+        train_loss = self.model.loss(  #on calcul la loss sur les targets observées des valeurs futures. 
             **select(self.inputs, batch),
             future_observed_values=batch["future_observed_values"],
             future_target=batch["future_target"],
         ).mean()
-
+        #super important le logger pour suivre le training. 
         self.log(
             "train_loss",
             train_loss,
