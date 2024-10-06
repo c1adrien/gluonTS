@@ -88,12 +88,12 @@ class SimpleFeedForwardModel(nn.Module):
             )
         )
 
-        self.nn = nn.Sequential(*modules)
+        self.nn = nn.Sequential(*modules) #ici on a finit de definir le reseau de neuroes. 
         self.args_proj = self.distr_output.get_args_proj(
             self.hidden_dimensions[-1]
-        )
+        )   #pred en input la taille de la derniere couche du reseau de neurones, et effectue une projection pour avoir la loi. 
 
-    def describe_inputs(self, batch_size=1) -> InputSpec:
+    def describe_inputs(self, batch_size=1) -> InputSpec: 
         return InputSpec(
             {
                 "past_target": Input(
@@ -111,7 +111,7 @@ class SimpleFeedForwardModel(nn.Module):
         scaled_context = past_target / scale
         nn_out = self.nn(scaled_context)
         nn_out_reshaped = nn_out.reshape(
-            -1, self.prediction_length, self.hidden_dimensions[-1]
+            -1, self.prediction_length, self.hidden_dimensions[-1] #o reshape pour la projecton 
         )
         distr_args = self.args_proj(nn_out_reshaped)
         return distr_args, torch.zeros_like(scale), scale

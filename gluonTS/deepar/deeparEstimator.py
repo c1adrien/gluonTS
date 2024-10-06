@@ -64,7 +64,7 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
     "future_target",
     "future_observed_values",
 ]
-
+#la class DeepAR : 50% consacrée aux données, à la préparation et au split des data. 50% consacrée à l'entrainement des modèles (2 dernieres instructions).
 
 class DeepAREstimator(PyTorchLightningEstimator):
     """
@@ -233,7 +233,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             min_future=prediction_length
         )
         self.nonnegative_pred_samples = nonnegative_pred_samples
-
+    # 1. Compris et simple 
     #just useful to calculate some statistics. Defini dans la classe abstraite au plus au niveau. On ne peut pas faire autrement qu'avec ça. 
     @classmethod
     def derive_auto_fields(cls, train_iter):
@@ -244,7 +244,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             "num_feat_static_cat": len(stats.feat_static_cat),
             "cardinality": [len(cats) for cats in stats.feat_static_cat],
         }
-    
+    # 2. Une liste de transformation appliquées aux data. Peut etre les visualiser ces transformations, voir ce qu'il se passe sans aucune. Ne pas oblier qu'on peut les chainer les transfo.
     #les transormation qui seront appliquées au data. Construction d'une matrice à la fin de features; Une transformation ça s'applique aux data et ça se chaine. 
     def create_transformation(self) -> Transformation:
         remove_field_names = []
@@ -320,7 +320,9 @@ class DeepAREstimator(PyTorchLightningEstimator):
                 AsNumpyArray(FieldName.FEAT_TIME, expected_ndim=2),
             ]
         )
-
+    #3. Consturction du split split le dataset. Herite aussi de transformation. 
+    # pour le instance_splitter, il faut lui donner un Instance_sampler. (à priori on ne va pas le toucher. Ensuite le instanceSplitter derive de Transformation
+    # le instanceSplitter peut etre vu comme un cas particulier de transformation. Split le dataset. Attention; time_series_fields peut varier. 
     def _create_instance_splitter(
         self, module: DeepARLightningModule, mode: str
     ):
@@ -347,6 +349,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             dummy_value=self.distr_output.value_in_support,
         )
 
+    #4. Prépare les batch sizes. as_stacked_batches s occupe de construire les batch sizes, de maniere operationnelle. 
     def create_training_data_loader(
         self,
         data: Dataset,
@@ -354,7 +357,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
-        data = Cyclic(data).stream()
+        data = Cyclic(data).stream() #permet de construire un itérable 
         instances = self._create_instance_splitter(module, "training").apply(
             data, is_train=True
         )
@@ -366,7 +369,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             output_type=torch.tensor,
             num_batches_per_epoch=self.num_batches_per_epoch,
         )
-
+    #5. meme chose. On peut choisir le mode 'validation', ou 'training'. Vient du create instance splitter plus haut. Renvoie des batches sizes. 
     def create_validation_data_loader(
         self,
         data: Dataset,
@@ -384,7 +387,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         )
     
 
-    #c'est lui qui créer qqch d'utile. il construit le DeepAR
+    #6. c'est lui qui créer qqch d'utile. il construit le DeepAR qui va etre entrainé. 
     def create_lightning_module(self) -> DeepARLightningModule:
         return DeepARLightningModule(
             lr=self.lr,
@@ -412,13 +415,13 @@ class DeepAREstimator(PyTorchLightningEstimator):
                 "nonnegative_pred_samples": self.nonnegative_pred_samples,
             },
         )
-
+    # le predictor a partir du reseau de neurones entraine. 
     def create_predictor(
         self,
         transformation: Transformation,
         module: DeepARLightningModule,
     ) -> PyTorchPredictor:
-        prediction_splitter = self._create_instance_splitter(module, "test")
+        prediction_splitter = self._create_instance_splitter(module, "test") 
 
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,

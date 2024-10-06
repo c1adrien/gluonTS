@@ -38,7 +38,7 @@ from pts.modules import StudentTOutput
 
 from .deepar_network import DeepARTrainingNetwork, DeepARPredictionNetwork
 
-
+#herite de PytorchEstimator, qui contient une méthode de train. 
 class DeepAREstimator(PyTorchEstimator):
     @validated()
     def __init__(

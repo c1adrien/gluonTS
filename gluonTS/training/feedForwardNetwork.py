@@ -28,4 +28,4 @@ class LightningFeedForwardNetwork(FeedForwardNetwork, pl.LightningModule):
     
 
 #TODO. faire evoluer sous la forme d'un trainer. Comme c'est le cas dans pytorch-ts. Après avoir regardé les détails de l'implémentation. 
-#TODO. comprendre tout ce qui tourne autour des series 
+#TODO. comprendre tout ce qui tourne autour des series --- 
