@@ -21,7 +21,7 @@ from gluonts.torch.model.lightning_util import has_validation_loop
 
 from .module import DeepARModel
 
-
+#configuration de l'entrainement. mais on ne détaille pas vraiment ici comment l'entrainement est précisément effectué. 
 class DeepARLightningModule(pl.LightningModule):
     """
     A ``pl.LightningModule`` class that can be used to train a ``DeepARModel``
