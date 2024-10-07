@@ -340,7 +340,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             start_field=FieldName.START,
             forecast_start_field=FieldName.FORECAST_START,
             instance_sampler=instance_sampler,
-            past_length=module.model._past_length,
+            past_length=module.model._past_length, #pas vraiment besoin du module ici. Plus une version soft. 
             future_length=self.prediction_length,
             time_series_fields=[
                 FieldName.FEAT_TIME,
