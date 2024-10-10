@@ -29,22 +29,38 @@ from gluonts.dataset.common import Dataset
 from gluonts.itertools import Cyclic
 import torch 
 from gluonts.dataset.loader import as_stacked_batches
+from gluonts.transform import (
+    AddObservedValuesIndicator,
+    ExpectedNumInstanceSampler,
+    InstanceSampler,
+    InstanceSplitter,
+    SelectFields,
+    TestSplitSampler,
+    Transformation,
+    ValidationSplitSampler,
+)
+
+from gluonts.dataset.repository import get_dataset
+from gluonts.time_feature import (
+    TimeFeature,
+    time_features_from_frequency_str,
+)
 
 
-PREDICTION_INPUT_NAMES = [
-    "feat_static_cat",
-    "feat_static_real",
-    "past_time_feat",
-    "past_target",
-    "past_observed_values",
-    "future_time_feat",
-]
+#PREDICTION_INPUT_NAMES = [
+#"feat_static_cat",
+#"feat_static_real",
+#"past_time_feat",
+#"past_target",
+#"past_observed_values",
+#"future_time_feat",
+#]
 
-TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
-    "future_target",
-    "future_observed_values",
-]
-TRAINING_INPUT_NAMES = ["feat_static_cat"]
+#TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
+#"future_target",
+#"future_observed_values",
+#]
+#TRAINING_INPUT_NAMES = ["feat_static_cat"]
 
 class LoadingSimpleDatasetAndCreatingBatches():
     """a demo class to understanding 
@@ -81,9 +97,12 @@ class LoadingSimpleDatasetAndCreatingBatches():
        -1.968...1, -1.2090e-01, -5.0720e-01, -6.6610e-01]), 'item_id': 'A', 'feat_dynamic_real': array([[ 0.00874503, -0.18895264,  0.19976967,  0.88544543, -0.60249421,
         -0.6..., -0.35331075,  1.46276465,  0.80923735]])}
                                                                                                                             """
-        self.instance = self.create_instance_splitter("training").apply(self.dataset, is_train=True) #application : on a un TransformedDataset
+        
+        Transformation = self.super_simple_transformation()
+        self.transformed_training_data = Transformation.apply(self.dataset, is_train=True) #on peut toujours faire un apply sur les transformations. le time feat vient d ici. 
+        self.instance = self.create_instance_splitter("training").apply(self.transformed_training_data, is_train=True) #application : on a un TransformedDataset
 
-        self.dataloader = self.create_training_data_loader(self.dataset)
+        self.dataloader = self.create_training_data_loader(self.transformed_training_data)
 
 
     def create_instance_splitter(self,mode: str):
@@ -121,12 +140,37 @@ class LoadingSimpleDatasetAndCreatingBatches():
             self.instance,
             batch_size=40,
             shuffle_buffer_length=shuffle_buffer_length,
-            field_names=["feat_dynamic_real","future_target","past_target"], #on donne ici tous les noms de tous les featutres dans le dataset. i.e.
+            field_names=["feat_dynamic_real","future_target","past_target","time_feat"], #on donne ici tous les noms de tous les featutres dans le dataset. i.e.
             output_type=torch.tensor,
             num_batches_per_epoch=20,
         )
 
-        
+   
+
+    def super_simple_transformation(self)->Transformation:
+        return Chain([ AsNumpyArray(
+                        field=FieldName.TARGET,
+                        # in the following line, we add 1 for the time dimension
+                        expected_ndim=1,
+                    ),
+                    AddObservedValuesIndicator(
+                        target_field=FieldName.TARGET,
+                        output_field=FieldName.OBSERVED_VALUES
+                    ),
+                    AddAgeFeature(
+                        target_field=FieldName.TARGET,
+                        output_field=FieldName.FEAT_AGE, #on donne des noms aux outputs fields. Puis on a aussi des noms aux inputs fields.
+                        pred_length=12,
+                        log_scale=True,
+                    ),
+                    AddTimeFeatures(
+                        start_field=FieldName.START,
+                        target_field=FieldName.TARGET,
+                        output_field=FieldName.FEAT_TIME,
+                        pred_length=12,
+                        time_features=time_features_from_frequency_str("H")
+                    ),
+        ])
 
 
         
